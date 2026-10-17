@@ -1,0 +1,74 @@
+{
+  "name": "Shipment ETA watch: daily tracking poll -> change alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {"interval": [{"field": "hours", "hoursInterval": 24}]}
+      },
+      "id": "c1",
+      "name": "Daily schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": "REPLACE_WITH_SHEET_ID",
+        "sheetName": "shipments",
+        "options": {}
+      },
+      "id": "c2",
+      "name": "Read tracked containers",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://REPLACE_WITH_TRACKING_API/track/{{ $json.container }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {"response": {"response": {"responseFormat": "json"}}}
+      },
+      "id": "c3",
+      "name": "Poll tracking API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// compare current ETA/status with the stored one; emit only on change\nconst item = $json;\nconst prev = item.stored_status;\nconst cur = item.status || item.eta;\nif (cur && cur !== prev) {\n  return [{ json: { container: item.container, old: prev, now: cur, eta: item.eta } }];\n}\nreturn [];"
+      },
+      "id": "c4",
+      "name": "Detect change",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "fromEmail": "REPLACE_WITH_SENDER",
+        "toEmail": "REPLACE_WITH_RECIPIENT",
+        "subject": "=Container {{ $json.container }}: status changed",
+        "emailType": "text",
+        "message": "=Status moved from {{ $json.old }} to {{ $json.now }}. ETA: {{ $json.eta }}"
+      },
+      "id": "c5",
+      "name": "Send alert email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "Daily schedule": {"main": [[{"node": "Read tracked containers", "type": "main", "index": 0}]]},
+    "Read tracked containers": {"main": [[{"node": "Poll tracking API", "type": "main", "index": 0}]]},
+    "Poll tracking API": {"main": [[{"node": "Detect change", "type": "main", "index": 0}]]},
+    "Detect change": {"main": [[{"node": "Send alert email", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "active": false
+}
