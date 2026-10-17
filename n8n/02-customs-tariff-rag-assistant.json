@@ -1,0 +1,82 @@
+{
+  "name": "Customs tariff Q&A assistant (RAG over public TARIC/CN texts)",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "mode": "hostedChat",
+        "options": {
+          "allowFileUploads": false,
+          "title": "Customs tariff assistant",
+          "subtitle": "Answers from public EU TARIC / Combined Nomenclature texts"
+        }
+      },
+      "id": "b1",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "name": "taric_docs",
+        "description": "Public EU TARIC and Combined Nomenclature chapter texts, headings and explanatory notes"
+      },
+      "id": "b2",
+      "name": "Vector Store Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [220, 220]
+    },
+    {
+      "parameters": {
+        "model": "REPLACE_WITH_EMBEDDING_MODEL"
+      },
+      "id": "b3",
+      "name": "Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [220, 380]
+    },
+    {
+      "parameters": {},
+      "id": "b4",
+      "name": "Vector Store (in-memory)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1,
+      "position": [360, 380]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "systemMessage": "You are a customs classification assistant. Answer only from the retrieved public TARIC/CN texts. Always cite the chapter and heading you used, give the candidate code at 8 digits, and say clearly when the classification depends on material or intended use. Never invent a code. Recommend confirming with a licensed customs agent."
+        }
+      },
+      "id": "b5",
+      "name": "LLM",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [440, 220]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "b6",
+      "name": "Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [440, 0]
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {"main": [[{"node": "Agent", "type": "main", "index": 0}]]},
+    "Vector Store Tool": {"ai_tool": [[{"node": "Agent", "type": "ai_tool", "index": 0}]]},
+    "Embeddings": {"ai_embedding": [[{"node": "Vector Store (in-memory)", "type": "ai_embedding", "index": 0}]]},
+    "Vector Store (in-memory)": {"ai_vectorStore": [[{"node": "Vector Store Tool", "type": "ai_vectorStore", "index": 0}]]},
+    "LLM": {"ai_languageModel": [[{"node": "Agent", "type": "ai_languageModel", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "active": false
+}
