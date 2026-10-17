@@ -1,0 +1,108 @@
+{
+  "name": "Invoice intake: email -> OCR/LLM extraction -> Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {"item": [{"mode": "everyX", "value": 10, "unit": "minutes"}]},
+        "filters": {"q": "has:attachment filename:(pdf OR jpg OR png) subject:(invoice OR factura)"},
+        "options": {"downloadAttachments": true}
+      },
+      "id": "a1",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "extractFromFile",
+        "options": {}
+      },
+      "id": "a2",
+      "name": "Extract text from PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "=Extract from this supplier invoice the JSON array \"lines\" with: reference, description, quantity, unit_price, gross_weight_kg, net_weight_kg, material (guess from description if missing). Reply with JSON only.\\n\\n{{ $json.data }}"
+            }
+          ]
+        },
+        "options": {"responseFormat": "json_object"}
+      },
+      "id": "a3",
+      "name": "LLM extraction",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "REPLACE_WITH_SHEET_ID",
+        "sheetName": "invoices",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reference": "={{ $json.lines[0].reference }}",
+            "description": "={{ $json.lines[0].description }}",
+            "quantity": "={{ $json.lines[0].quantity }}",
+            "unit_price": "={{ $json.lines[0].unit_price }}",
+            "gross_weight_kg": "={{ $json.lines[0].gross_weight_kg }}",
+            "net_weight_kg": "={{ $json.lines[0].net_weight_kg }}",
+            "material": "={{ $json.lines[0].material }}",
+            "source_message": "={{ $node['Gmail Trigger'].json.id }}"
+          }
+        }
+      },
+      "id": "a4",
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ Object.keys($json).length ? 1 : 0 }}",
+              "value2": 1
+            }
+          ]
+        }
+      },
+      "id": "a5",
+      "name": "Extraction OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [440, 160]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "postMessage",
+        "text": "=Invoice extraction failed or empty for message {{ $node['Gmail Trigger'].json.id }} - please review manually."
+      },
+      "id": "a6",
+      "name": "Notify on failure",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [660, 220]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {"main": [[{"node": "Extract text from PDF", "type": "main", "index": 0}]]},
+    "Extract text from PDF": {"main": [[{"node": "LLM extraction", "type": "main", "index": 0}]]},
+    "LLM extraction": {"main": [[{"node": "Extraction OK?", "type": "main", "index": 0}]]},
+    "Extraction OK?": {"main": [[{"node": "Append to Google Sheets", "type": "main", "index": 0}], [{"node": "Notify on failure", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "active": false
+}
