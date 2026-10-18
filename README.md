@@ -10,6 +10,12 @@ I built this tool and iterate on it in real customs-clearance work. This reposit
 - The embedded tariff data is **official public EU data**: the TARIC 10-digit catalogue (DG TAXUD, dated 2026-10-01) and the Combined Nomenclature texts.
 - Nothing here identifies any company, client, container or real clearance.
 
+## Live demo
+
+Try the demo build in your browser (no install): **https://andrescampomar2010-dotcom.github.io/customs-clearance-processor/**
+
+Load `samples/demo-invoice-packing-demo-trading.xlsx` (synthetic invoice + packing list from a fictional supplier) to see it work.
+
 ## What it does
 
 - Reads invoice and packing-list Excels from different suppliers, with automatic column detection (any order, mixed languages, Chinese sheet names).
@@ -23,6 +29,10 @@ I built this tool and iterate on it in real customs-clearance work. This reposit
 Open `index.html` in Chrome or Edge. Everything runs locally in the browser; no server, no install. To try it, load `samples/demo-invoice-packing-demo-trading.xlsx` (synthetic invoice + packing list from a fictional supplier).
 
 ![screenshot](docs/screenshot.png)
+
+## Validation
+
+`eval/validate_kb.py` checks the embedded knowledge bases for internal consistency: every code the app can suggest is well-formed and backed by the official TARIC snapshot (16,632 declarable codes, DG TAXUD 2026-10-01). Latest measured results in [eval/RESULTS.md](eval/RESULTS.md) - all 119 evidence codes pass.
 
 ## n8n workflows
 
