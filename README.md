@@ -2,6 +2,8 @@
 
 **English** | [Español](#español)
 
+[![Demo](https://img.shields.io/badge/demo-live-2ea44f?style=flat-square)](https://andrescampomar2010-dotcom.github.io/customs-clearance-processor/) [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)](LICENSE)
+
 A single-file web app that turns a supplier's invoice + packing list (Excel) and an optional photo PDF into a customs-clearance workbook: suggested TARIC tariff codes per line, a grouped TARIC dossier, and cropped product photos per reference.
 
 I built this tool and iterate on it in real customs-clearance work. This repository contains a **sanitized demo build for portfolio purposes**:
